@@ -94,5 +94,12 @@ df['Amenities'] = df['Amenities'].apply(clean_amenities)
 # Display the first few rows of the cleaned amenities column
 print(df['Amenities'].head())
 
+df['Price'] = df['Price'].replace('[\$,]', '', regex=True).astype(float)
+
+# Sort the listings by Price in descending order to identify the most expensive listings
+most_expensive_listings = df.sort_values(by='Price', ascending=False)
+
+# Display the top 10 most expensive listings
+print(most_expensive_listings[['ID', 'Host Location', 'Price']].head(10))
 # Save the processed dataframe to a new CSV file
 df.to_csv('cleaned_airbnb_data222.csv', index=False)
