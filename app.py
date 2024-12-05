@@ -76,128 +76,105 @@ if navigation == "Buyer":
 
     # Check if data is available
     if data is not None:
-        if 'latitude' in data.columns and 'longitude' in data.columns:
-            deck = pdk.Deck(
-                map_style='mapbox://styles/mapbox/streets-v11',
-                initial_view_state=pdk.ViewState(
-                    latitude=data['latitude'].mean(),
-                    longitude=data['longitude'].mean(),
-                    zoom=10,
-                    pitch=50,
-                ),
-                layers=[pdk.Layer(
-                    'ScatterplotLayer',
-                    data=data,
-                    get_position='[longitude, latitude]',
-                    get_color='[200, 30, 0, 160]',
-                    get_radius=200,
-                    pickable=True
-                )],
-                tooltip={
-                    "html": "<b>Listing Name:</b> {name}<br/><b>Price:</b> {price}<br/><b>Review Score:</b> {review_scores_rating}",
-                    "style": {"backgroundColor": "steelblue", "color": "white"}
-                }
-            )
-            st.pydeck_chart(deck)
-        else:
-            st.error("The dataset does not contain 'latitude' and 'longitude' columns.")
-
-        # Top 50 listings
-        top_50_listings = data.sort_values(by='review_scores_rating', ascending=False).head(50)
-
-        st.subheader("Top 50 Listings Based on Review Scores")
-        top_50_display = top_50_listings[['review_scores_rating', 'name', 'listing_url', 'description']]
-
-        top_50_display['description'] = top_50_display['description'].apply(
-            lambda x: x[:100] + "..." if len(x) > 100 else x)  # Shorten descriptions
-        st.dataframe(top_50_display)
-
-        # Fetch unique amenities and property types from dataset
-        if 'amenities' in data.columns:
-            unique_amenities = sorted(set([amenity.strip() for sublist in data['amenities'].dropna().str.split(',') for amenity in sublist]))
-        else:
-            unique_amenities = ["No amenities listed"]
-
-        if 'property_type' in data.columns:
-            unique_property_types = sorted(data['property_type'].dropna().unique())
-        else:
-            unique_property_types = ["No property types listed"]
-
-        price_ranges = ["$10 - $500", "$500 - $1000", "$1000 - $5000", "$5000 - $10000", "$10000 - $50000"]
-
+        
         st.sidebar.subheader("Search Filters")
 
-        # Amenities
-        selected_amenities = st.sidebar.multiselect("Select Amenities", unique_amenities)
+        # User-enterable ratings input
+        rating_input = st.sidebar.text_input("Enter Minimum Rating (0.0 to 5.0)", "0.0")
 
-        # Property Type
+        # Validate rating input
+        try:
+            rating_input = float(rating_input)
+            if rating_input < 0.0 or rating_input > 5.0:
+                st.sidebar.error("Rating out of range. Enter a value between 0.0 and 5.0.")
+                rating_input = None
+        except ValueError:
+            st.sidebar.error("Invalid rating. Please enter a numeric value.")
+            rating_input = None
+
+        # Property type dropdown with "Any" option
+        unique_property_types = (
+            ["Any"] + sorted(data['property_type'].dropna().unique().tolist()) 
+            if 'property_type' in data.columns 
+            else ["Any"]
+        )
         selected_property_type = st.sidebar.selectbox("Select Property Type", unique_property_types)
 
-        # Price Range
-        selected_price_range = st.sidebar.selectbox("Select Price Range", price_ranges)
+        # Text input for price filter
+        price_input = st.sidebar.text_input("Enter Price (0 to 8240)", "0")
 
-        # Number of Bedrooms
+        # Validate price input
+        try:
+            price_input = int(price_input)
+            if price_input < 0 or price_input > 8240:
+                st.sidebar.error("Price out of range. Enter a value between 0 and 8240.")
+                price_input = None
+        except ValueError:
+            st.sidebar.error("Invalid price. Please enter a numeric value.")
+            price_input = None
+
+        # Number of bedrooms filter
         selected_bedrooms = st.sidebar.slider("Select Number of Bedrooms", min_value=1, max_value=10, value=1)
 
-        # Search Button
+        # Search button
         search_button = st.sidebar.button("Search")
 
-        # Display Result when Search clicked
+        # Apply filters and display results when search button is clicked
         if search_button:
             filtered_data = data
 
-            if selected_amenities:
-                filtered_data = filtered_data[
-                    filtered_data['amenities'].apply(lambda x: all(amenity in x for amenity in selected_amenities))]
+            # Filter by ratings
+            if rating_input is not None:
+                filtered_data = filtered_data[filtered_data['review_scores_rating'] >= rating_input]
 
-            if selected_property_type:
+            # Filter by property type (ignore if "Any" is selected)
+            if selected_property_type and selected_property_type != "Any":
                 filtered_data = filtered_data[filtered_data['property_type'] == selected_property_type]
 
-            if selected_price_range:
-                price_range = selected_price_range.split(" - ")
-                min_price, max_price = int(price_range[0].strip('$').replace(",", "")), int(price_range[1].strip('$').replace(",", ""))
-                filtered_data = filtered_data[(filtered_data['price'] >= min_price) & (filtered_data['price'] <= max_price)]
+            # Filter by price
+            if price_input is not None:
+                filtered_data = filtered_data[filtered_data['price'] <= price_input]
 
+            # Filter by bedrooms
             if selected_bedrooms:
                 filtered_data = filtered_data[filtered_data['bedrooms'] == selected_bedrooms]
 
-            # Display data
+            # Display filtered results
             if len(filtered_data) > 0:
                 st.write(f"Found {len(filtered_data)} properties based on your search criteria.")
-                st.dataframe(filtered_data[['review_scores_rating', 'name', 'listing_url', 'description']])
+                st.dataframe(filtered_data[['review_scores_rating', 'name', 'listing_url', 'price', 'bedrooms']])
+
+                # Render map with filtered data
+                if 'latitude' in filtered_data.columns and 'longitude' in filtered_data.columns:
+                    deck = pdk.Deck(
+                        map_style='mapbox://styles/mapbox/streets-v11',
+                        initial_view_state=pdk.ViewState(
+                            latitude=filtered_data['latitude'].mean(),
+                            longitude=filtered_data['longitude'].mean(),
+                            zoom=10,
+                            pitch=50,
+                        ),
+                        layers=[pdk.Layer(
+                            'ScatterplotLayer',
+                            data=filtered_data,
+                            get_position='[longitude, latitude]',
+                            get_color='[200, 30, 0, 160]',
+                            get_radius=200,
+                            pickable=True
+                        )],
+                        tooltip={
+                            "html": "<b>Listing Name:</b> {name}<br/><b>Price:</b> {price}<br/><b>Review Score:</b> {review_scores_rating}",
+                            "style": {"backgroundColor": "steelblue", "color": "white"}
+                        }
+                    )
+                    st.pydeck_chart(deck)
+                else:
+                    st.error("The dataset does not contain 'latitude' and 'longitude' columns.")
             else:
                 st.write("No properties match your search criteria.")
-
-            # Display map
-            if 'latitude' in filtered_data.columns and 'longitude' in filtered_data.columns:
-                deck = pdk.Deck(
-                    map_style='mapbox://styles/mapbox/streets-v11',
-                    initial_view_state=pdk.ViewState(
-                        latitude=filtered_data['latitude'].mean(),
-                        longitude=filtered_data['longitude'].mean(),
-                        zoom=10,
-                        pitch=50,
-                    ),
-                    layers=[pdk.Layer(
-                        'ScatterplotLayer',
-                        data=filtered_data,
-                        get_position='[longitude, latitude]',
-                        get_color='[200, 30, 0, 160]',
-                        get_radius=200,
-                        pickable=True
-                    )],
-                    tooltip={
-                        "html": "<b>Listing Name:</b> {name}<br/><b>Price:</b> {price}<br/><b>Review Score:</b> {review_scores_rating}",
-                        "style": {"backgroundColor": "steelblue", "color": "white"}
-                    }
-                )
-                st.pydeck_chart(deck)
-            else:
-                st.error("The dataset does not contain 'latitude' and 'longitude' columns.")
-        else:
-            st.write("Click the 'Search' button to apply filters and view the results.")
     else:
         st.error("No data available.")
+
 
 
 #Seller Page
