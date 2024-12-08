@@ -6,146 +6,189 @@ import random
 import pydeck as pdk
 from dotenv import load_dotenv
 from utils.b2 import B2
- 
+
 # Add the utils directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'utils')))
- 
+
 # Load environment variables
 load_dotenv()
- 
+
 # Set Backblaze connection
 b2 = B2(
     endpoint=os.getenv('B2_ENDPOINT', 's3.us-east-005.backblazeb2.com'),
     key_id=os.getenv('B2_KEYID'),
     secret_key=os.getenv('B2_APPKEY')
 )
- 
+
 @st.cache_data
 def fetch_data():
     try:
         b2.set_bucket('Streamlit-D')  # Set the bucket
         obj = b2.get_object('Sorted_Austin_AirBnB.csv')  # Use the EXACT file name
-        return pd.read_csv(obj)
+        data = pd.read_csv(obj)
+
+        # Preprocess the data
+        if 'price' in data.columns:
+            data['price'] = data['price'].replace('[\$,]', '', regex=True).astype(float)
+        return data
     except Exception as e:
         st.error(f"Error fetching data from Backblaze: {e}")
         return None
- 
-# APPLICATION
-st.title("Airbnb Data Viewer")
- 
-# Sidebar navigation options
-navigation = st.sidebar.radio("Select ", ("Main", "Buyer", "Seller"))
- 
-# Main Page Content
-if navigation == "Main":
-    st.header("Welcome to the Airbnb Data Explorer")
+
+# Main application function
+def main():
+    # Set the page config for a wide layout
+    st.set_page_config(page_title="Airbnb Data Viewer", layout="wide", initial_sidebar_state="expanded")
+
+    # Custom CSS for styling
     st.markdown("""
-    **Using this data, we aim to uncover insights into what makes an Airbnb listing successful.**
+        <style>
+            body {
+                font-family: 'Arial', sans-serif;
+                background-color: #f4f4f9;
+            }
+            .title {
+                font-size: 3rem;
+                font-weight: bold;
+                color: #F0000B;
+                text-align: center;
+                margin-top: 40px;
+            }
+            .sub-title {
+                font-size: 2rem;
+                color: #333;
+            }
+            .markdown-text {
+                font-size: 1.1rem;
+                line-height: 1.6;
+                color: #555;
+            }
+            .stButton>button {
+                background-color: #007BFF;
+                color: white;
+                font-weight: bold;
+                border-radius: 12px;
+                padding: 10px 20px;
+            }
+            .stButton>button:hover {
+                background-color: #006FCE;
+            }
+            .sidebar .sidebar-content {
+                background-color: #2F4F4F;
+                color: white;
+            }
+            .stSidebar .sidebar-content .element-container {
+                color: white;
+            }
+            .footer {
+                background-color: #007BFF;
+                padding: 10px;
+                color: white;
+                text-align: center;
+                font-size: 14px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
-    ### Our Goals:
-    - Understand the factors that lead to higher ratings and greater foot traffic.
-    - Explore the influence of location and neighborhoods on reviews and ratings.
-    - Identify specific amenities that contribute to higher reviews.
-    - Evaluate if pricing strategies impact success.
+    # Title Section with custom color
+    st.markdown('<h1 class="title">Airbnb Explorer</h1>', unsafe_allow_html=True)
 
-    ### Our Approach:
-    - Compare locations and neighborhoods to identify "hotspots" that are favored by users.
-    - Assess the role of amenities in improving customer satisfaction.
-    - Analyze price ranges to find the "sweet spot" that attracts the most guests.
+    # Navigation
+    navigation = st.sidebar.selectbox("Navigate", ["Main", "Buyer Page", "Seller Page"])
 
-    By analyzing this data, we hope to help Airbnb hosts optimize their listings and improve their offerings for greater success.
-    """)
-    st.write("Use the navigation options on the left to explore the Buyer and Seller pages for more detailed insights.")
+    # Fetch data
+    data = fetch_data()
 
-# Fetch data from Backblaze
-data = fetch_data()
+    # Main Page Content with Tabs
+    if navigation == "Main":
+        st.header("Welcome to the Airbnb Data Explorer")
 
-if data is not None and 'id' in data.columns:
-    # Convert 'id' to integer, then keep only the first five digits
-    data['id'] = data['id'].apply(lambda x: str(int(x))[:5])
- 
-# Display data on the main page
-if navigation == "Main" and data is not None:
-    st.write("Data loaded successfully.")
-    st.dataframe(data.head())
- 
+        # Tab system
+        tab = st.selectbox("Select a section", ["Introduction", "Goals and Approach", "Data Preview"])
 
-# Buyer Page
-if navigation == "Buyer":
-    st.header("Explore Listings in Austin, Texas")
+        if tab == "Introduction":
+            st.markdown('<p class="sub-title">Introduction</p>', unsafe_allow_html=True)
+            st.markdown("""
+            <p class="markdown-text">Using this data, we aim to uncover insights into what makes an Airbnb listing successful.</p>
+            """, unsafe_allow_html=True)
 
-    # Check if data is available
-    if data is not None:
-        
-        st.sidebar.subheader("Search Filters")
+        elif tab == "Goals and Approach":
+            st.markdown('<p class="sub-title">Our Goals and Approach</p>', unsafe_allow_html=True)
+            st.markdown("""
+            <p class="markdown-text">
+            Our Goals:
+            - Understand the factors that lead to higher ratings and greater foot traffic.
+            - Explore the influence of location and neighborhoods on reviews and ratings.
+            - Identify specific amenities that contribute to higher reviews.
+            - Evaluate if pricing strategies impact success.
 
-        # User-enterable ratings input
-        rating_input = st.sidebar.text_input("Enter Minimum Rating (0.0 to 5.0)", "0.0")
+            Our Approach:
+            - Compare locations and neighborhoods to identify "hotspots" that are favored by users.
+            - Assess the role of amenities in improving customer satisfaction.
+            - Analyze price ranges to find the "sweet spot" that attracts the most guests.
+            </p>
+            """, unsafe_allow_html=True)
 
-        # Validate rating input
-        try:
-            rating_input = float(rating_input)
-            if rating_input < 0.0 or rating_input > 5.0:
-                st.sidebar.error("Rating out of range. Enter a value between 0.0 and 5.0.")
-                rating_input = None
-        except ValueError:
-            st.sidebar.error("Invalid rating. Please enter a numeric value.")
-            rating_input = None
+        elif tab == "Data Preview":
+            if data is not None and 'id' in data.columns:
+                # Convert 'id' to integer, then keep only the first five digits
+                data['id'] = data['id'].apply(lambda x: str(int(float(x)))[:5])
 
-        # Property type dropdown with "Any" option
+            # Display data on the main page
+            if data is not None:
+                st.write("Data loaded successfully.")
+                st.dataframe(data.head())
+            else:
+                st.write("Failed to load data.")
+
+    elif navigation == "Buyer Page" and data is not None:
+        st.header("Buyer Page")
+
+        # Inputs with better styling
+        rating_input = st.number_input("Minimum Review Rating", min_value=0.0, max_value=5.0, value=3.0, step=0.1)
+        price_input = st.number_input("Maximum Price ($)", min_value=0, value=500)
+
         unique_property_types = (
             ["Any"] + sorted(data['property_type'].dropna().unique().tolist()) 
-            if 'property_type' in data.columns 
-            else ["Any"]
+            if 'property_type' in data.columns else ["Any"]
         )
-        selected_property_type = st.sidebar.selectbox("Select Property Type", unique_property_types)
+        selected_property_type = st.selectbox("Property Type", options=unique_property_types)
 
-        # Text input for price filter
-        price_input = st.sidebar.text_input("Enter Price (0 to 8240)", "0")
+        unique_bedrooms = (
+            sorted(data['bedrooms'].dropna().unique()) 
+            if 'bedrooms' in data.columns else []
+        )
+        selected_bedrooms = st.selectbox("Number of Bedrooms", options=unique_bedrooms)
 
-        # Validate price input
-        try:
-            price_input = int(price_input)
-            if price_input < 0 or price_input > 8240:
-                st.sidebar.error("Price out of range. Enter a value between 0 and 8240.")
-                price_input = None
-        except ValueError:
-            st.sidebar.error("Invalid price. Please enter a numeric value.")
-            price_input = None
+        search_button = st.button("Search")
 
-        # Number of bedrooms filter
-        selected_bedrooms = st.sidebar.slider("Select Number of Bedrooms", min_value=1, max_value=10, value=1)
-
-        # Search button
-        search_button = st.sidebar.button("Search")
-
-        # Apply filters and display results when search button is clicked
         if search_button:
-            filtered_data = data
+            filtered_data = data.copy()
 
-            # Filter by ratings
-            if rating_input is not None:
+            # Filter by rating
+            if 'review_scores_rating' in filtered_data.columns:
                 filtered_data = filtered_data[filtered_data['review_scores_rating'] >= rating_input]
 
-            # Filter by property type (ignore if "Any" is selected)
-            if selected_property_type and selected_property_type != "Any":
+            # Filter by property type
+            if selected_property_type != "Any" and 'property_type' in filtered_data.columns:
                 filtered_data = filtered_data[filtered_data['property_type'] == selected_property_type]
 
             # Filter by price
-            if price_input is not None:
+            if 'price' in filtered_data.columns:
                 filtered_data = filtered_data[filtered_data['price'] <= price_input]
 
             # Filter by bedrooms
-            if selected_bedrooms:
+            if 'bedrooms' in filtered_data.columns:
                 filtered_data = filtered_data[filtered_data['bedrooms'] == selected_bedrooms]
 
-            # Display filtered results
+            # Display filtered data
             if len(filtered_data) > 0:
                 st.write(f"Found {len(filtered_data)} properties based on your search criteria.")
                 st.dataframe(filtered_data[['review_scores_rating', 'name', 'listing_url', 'price', 'bedrooms']])
 
-                # Render map with filtered data
+                # Render map
                 if 'latitude' in filtered_data.columns and 'longitude' in filtered_data.columns:
+                    filtered_data = filtered_data.dropna(subset=['latitude', 'longitude'])
                     deck = pdk.Deck(
                         map_style='mapbox://styles/mapbox/streets-v11',
                         initial_view_state=pdk.ViewState(
@@ -169,43 +212,51 @@ if navigation == "Buyer":
                     )
                     st.pydeck_chart(deck)
                 else:
-                    st.error("The dataset does not contain 'latitude' and 'longitude' columns.")
+                    st.error("Latitude and longitude columns are missing or invalid.")
             else:
                 st.write("No properties match your search criteria.")
-    else:
-        st.error("No data available.")
 
+    elif navigation == "Seller Page":
+        # Sidebar for Seller Input Form
+        st.sidebar.title("Seller's Property Details")
+        property_types = ["House", "Apartment", "Condo", "Townhouse"]
+        price_ranges = ["$10 - $500", "$500 - $1000", "$1000- $5000", "$5000 - $10000", "$10000 - $50000"]
 
+        # Dropdown for Property Type
+        property_type = st.sidebar.selectbox("Property Type", property_types)
+        # Dropdown for Price Range
+        price_range = st.sidebar.selectbox("Price Range", price_ranges)
+        # Number inputs for Bedrooms, Bathrooms, Beds, etc.
+        bedrooms = st.sidebar.number_input("Number of Bedrooms", min_value=1, max_value=10, value=1)
+        bathrooms = st.sidebar.number_input("Number of Bathrooms", min_value=1, max_value=10, value=1)
+        beds = st.sidebar.number_input("Number of Beds", min_value=1, max_value=10, value=1)
 
-#Seller Page
-elif navigation == "Seller":
-    # Sidebar for Seller Input Form
-    st.sidebar.title("Seller's Property Details")
-    property_types = ["House", "Apartment", "Condo", "Townhouse"]
-    price_ranges = ["$10 - $500", "$500 - $1000", "$1000- $5000", "$5000 - $10000", "$10000 - $50000"]
-    # Dropdown for Property Type
-    property_type = st.sidebar.selectbox("Property Type", property_types)
-    # Dropdown for Price Range
-    price_range = st.sidebar.selectbox("Price Range", price_ranges)
-    # Number inputs for Bedrooms, Bathrooms, Beds, etc.
-    bedrooms = st.sidebar.number_input("Number of Bedrooms", min_value=1, max_value=10, value=1)
-    bathrooms = st.sidebar.number_input("Number of Bathrooms", min_value=1, max_value=10, value=1)
-    beds = st.sidebar.number_input("Number of Beds", min_value=1, max_value=10, value=1)
-    # Flag to check if the submit button has been clicked
-    submitted = st.sidebar.button("Submit Property")
-    # Main Page Content
-    if not submitted:
-        # Display introductory text only if not submitted
-        st.title("Seller's Property Submission")
-        st.write("Fill in the property details on the sidebar to submit your listing.")
-    else:
-        # Display submitted property details
-        st.markdown("### Property Details Submitted")
-        st.write(f"**Property Type:** {property_type}")
-        st.write(f"**Price Range:** {price_range}")
-        st.write(f"**Bedrooms:** {bedrooms}")
-        st.write(f"**Bathrooms:** {bathrooms}")
-        st.write(f"**Beds:** {beds}")
-        # Generate and display a prominent random score
-        random_score = random.randint(1, 5)
-        st.markdown(f"## 🔥 **Predicted Score: {random_score}** 🔥")
+        # Flag to check if the submit button has been clicked
+        submitted = st.sidebar.button("Submit Property")
+
+        # Main Page Content
+        if not submitted:
+            # Display introductory text only if not submitted
+            st.title("Seller's Property Submission")
+            st.write("Fill in the property details on the sidebar to submit your listing.")
+        else:
+            # Display submitted property details
+            st.markdown("### Property Details Submitted")
+            st.write(f"**Property Type:** {property_type}")
+            st.write(f"**Price Range:** {price_range}")
+            st.write(f"**Bedrooms:** {bedrooms}")
+            st.write(f"**Bathrooms:** {bathrooms}")
+            st.write(f"**Beds:** {beds}")
+            # Generate and display a prominent random score
+            random_score = random.randint(1, 5)
+            st.markdown(f"##  **Predicted Score: {random_score}** ")
+
+    # Footer
+    st.markdown("""
+        <div class="footer">
+            <p>Made by Nathan, Parth, Diya & Arsh | 2024</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
