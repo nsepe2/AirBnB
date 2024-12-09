@@ -19,6 +19,7 @@ The prediction leverages a trained linear regression model that uses features su
 
 
 __Tools Used:__
+
 **1. Streamlit:** For building an interactive web application with UI elements and navigation.
 
 **2. Pandas:** For data manipulation and analysis, including loading CSV data.
