@@ -1,11 +1,19 @@
-import sys
 import os
-import streamlit as st
 import pandas as pd
-import random
+import streamlit as st
 import pydeck as pdk
-from dotenv import load_dotenv
+import pickle
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from utils.modeling_sentiment import encode_property_type, load_model
+import sys
 from utils.b2 import B2
+from dotenv import load_dotenv
+from io import BytesIO
+
+# Set the page config for a wide layout
+st.set_page_config(page_title="Airbnb Data Viewer", layout="wide", initial_sidebar_state="expanded")
 
 # Add the utils directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'utils')))
@@ -13,34 +21,62 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'util
 # Load environment variables
 load_dotenv()
 
-# Set Backblaze connection
+# Load Backblaze from Streamlit Secrets
+endpoint = os.getenv("B2_ENDPOINT")  
+key_id = os.getenv("B2_KEYID")
+app_key = os.getenv("B2_APPKEY")
+bucket_name = os.getenv("B2_BUCKETNAME")
+
+# Set up Backblaze connection
 b2 = B2(
-    endpoint=os.getenv('B2_ENDPOINT', 's3.us-east-005.backblazeb2.com'),
-    key_id=os.getenv('B2_KEYID'),
-    secret_key=os.getenv('B2_APPKEY')
+    endpoint=endpoint,
+    key_id=key_id,
+    secret_key=app_key
 )
 
-@st.cache_data
+
+@st.cache_data 
 def fetch_data():
     try:
-        b2.set_bucket('Streamlit-D')  # Set the bucket
-        obj = b2.get_object('Sorted_Austin_AirBnB.csv')  # Use the EXACT file name
-        data = pd.read_csv(obj)
+        b2.set_bucket(os.getenv('B2_BUCKETNAME'))  
+        obj = b2.get_object('Final_PROJ.xlsx')  # Name of File
 
-        # Preprocess the data
-        if 'price' in data.columns:
-            data['price'] = data['price'].replace('[\$,]', '', regex=True).astype(float)
-        return data
+        # Convert the StreamingBody object to a BytesIO object
+        file_content = obj.read()  # Read the content of the StreamingBody
+        return pd.read_excel(BytesIO(file_content))  # Use BytesIO to create a file-like object
     except Exception as e:
         st.error(f"Error fetching data from Backblaze: {e}")
         return None
 
+
+def get_sentiment_score(text, analyzer):
+    """Utility function to get sentiment score using SentimentIntensityAnalyzer."""
+    if text:
+        sentiment = analyzer.polarity_scores(text)
+        return sentiment['compound']
+    return None  # Default sentiment score if text is missing
+
+
+# Load trained model and scaler from pickle file
+try:
+    model, scaler, expected_features = load_model()
+except FileNotFoundError:
+    st.error("Model file not found. Please add the trained model.pickle.")
+    st.stop()
+
+# Streamlit UI
+#st.title("Airbnb Data Viewer")
+
+# Initialize session state variables
+if 'page' not in st.session_state:
+    st.session_state.page = "Main"
+
+if 'submitted' not in st.session_state:
+    st.session_state.submitted = False
+
 # Main application function
 def main():
-    # Set the page config for a wide layout
-    st.set_page_config(page_title="Airbnb Data Viewer", layout="wide", initial_sidebar_state="expanded")
-
-    # Custom CSS for styling
+    # CSS styling
     st.markdown("""
         <style>
             body {
@@ -141,6 +177,7 @@ def main():
             else:
                 st.write("Failed to load data.")
 
+    # Buyer Page
     elif navigation == "Buyer Page" and data is not None:
         st.header("Buyer Page")
 
@@ -216,47 +253,78 @@ def main():
             else:
                 st.write("No properties match your search criteria.")
 
+    # Seller Page
     elif navigation == "Seller Page":
-        # Sidebar for Seller Input Form
-        st.sidebar.title("Seller's Property Details")
-        property_types = ["House", "Apartment", "Condo", "Townhouse"]
-        price_ranges = ["$10 - $500", "$500 - $1000", "$1000- $5000", "$5000 - $10000", "$10000 - $50000"]
+        st.header("Seller Page")
 
-        # Dropdown for Property Type
-        property_type = st.sidebar.selectbox("Property Type", property_types)
-        # Dropdown for Price Range
-        price_range = st.sidebar.selectbox("Price Range", price_ranges)
-        # Number inputs for Bedrooms, Bathrooms, Beds, etc.
-        bedrooms = st.sidebar.number_input("Number of Bedrooms", min_value=1, max_value=10, value=1)
-        bathrooms = st.sidebar.number_input("Number of Bathrooms", min_value=1, max_value=10, value=1)
-        beds = st.sidebar.number_input("Number of Beds", min_value=1, max_value=10, value=1)
+        # User inputs for prediction
+        accommodates = st.number_input("Accommodates", min_value=1, step=1)
+        bathrooms = st.number_input("Bathrooms", min_value=0.5, step=0.5)
+        bedrooms = st.number_input("Bedrooms", min_value=1, step=1)
+        beds = st.number_input("Beds", min_value=1, step=1)
+        price = st.number_input("Price (USD)", min_value=10, step=1)
+        neighborhood_overview = st.text_area("Neighborhood Overview")
+        host_neighborhood = st.text_area("Host Neighborhood Description")
+        amenities = st.text_area("Amenities")
+        property_type = st.selectbox("Property Type", ["Apartment", "House", "Condo", "unknown"])
 
-        # Flag to check if the submit button has been clicked
-        submitted = st.sidebar.button("Submit Property")
+        # Sentiment Analysis
+        analyzer = SentimentIntensityAnalyzer()
+        neighborhood_sentiment = get_sentiment_score(neighborhood_overview, analyzer)
+        host_neighborhood_sentiment = get_sentiment_score(host_neighborhood, analyzer)
+        amenities_sentiment = get_sentiment_score(amenities, analyzer)
 
-        # Main Page Content
-        if not submitted:
-            # Display introductory text only if not submitted
-            st.title("Seller's Property Submission")
-            st.write("Fill in the property details on the sidebar to submit your listing.")
-        else:
-            # Display submitted property details
-            st.markdown("### Property Details Submitted")
-            st.write(f"**Property Type:** {property_type}")
-            st.write(f"**Price Range:** {price_range}")
-            st.write(f"**Bedrooms:** {bedrooms}")
-            st.write(f"**Bathrooms:** {bathrooms}")
-            st.write(f"**Beds:** {beds}")
-            # Generate and display a prominent random score
-            random_score = random.randint(1, 5)
-            st.markdown(f"##  **Predicted Score: {random_score}** ")
+        # Prepare input data for prediction
+        input_data = pd.DataFrame({
+            'accommodates': [accommodates],
+            'bathrooms': [bathrooms],
+            'bedrooms': [bedrooms],
+            'beds': [beds],
+            'price': [price],
+            'neighborhood_sentiment': [neighborhood_sentiment],
+            'host_neighbourhood_sentiment': [host_neighborhood_sentiment],
+            'amenities_sentiment': [amenities_sentiment],
+            'property_type': [property_type]
+        })
 
-    # Footer
+        # One-hot encode 'property_type'
+        input_data_encoded = encode_property_type(input_data)
+
+        # Ensure the input data has all columns expected by the model
+        for missing_feature in expected_features:
+            if missing_feature not in input_data_encoded.columns:
+                if 'property_type' in missing_feature:
+                    # Add missing property type columns with a default value of 0
+                    input_data_encoded[missing_feature] = 0
+                else:
+                    # Add missing numerical features with a default value of 0
+                    input_data_encoded[missing_feature] = 0
+
+        # Reorder columns to match the expected features
+        input_data_encoded = input_data_encoded[expected_features]
+
+        # Add button to submit input data
+        if st.button("Predict Review Score"):
+            # Standardize features
+            try:
+                input_data_scaled = scaler.transform(input_data_encoded)
+            except ValueError as e:
+                st.error(f"Error during feature scaling: {e}")
+                st.stop()
+
+            # Make prediction
+            predicted_score = model.predict(input_data_scaled)[0]
+
+            st.subheader("Predicted Review Score")
+            st.write(f"The predicted review score for your listing is: {predicted_score:.2f}")
+            
+             # Footer
     st.markdown("""
         <div class="footer">
             <p>Made by Nathan, Parth, Diya & Arsh | 2024</p>
         </div>
     """, unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
