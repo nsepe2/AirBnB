@@ -1,7 +1,7 @@
 # AirBnB Explorer
 
-
 __Introduction to the App__
+
 The Airbnb Data Viewer serves as an interactive tool for users to explore insights into Airbnb listings. It is particularly focused on helping two main audiences: buyers seeking suitable properties and sellers (hosts) aiming to optimize their listings for better customer satisfaction and ratings.
 
 __The app offers the following features:__
