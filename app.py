@@ -18,8 +18,6 @@ st.set_page_config(page_title="Airbnb Data Viewer", layout="wide", initial_sideb
 # Add the utils directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'utils')))
 
-# Load environment variables
-load_dotenv()
 
 # Load Backblaze from Streamlit Secrets
 endpoint = os.getenv("B2_ENDPOINT")  
@@ -33,7 +31,6 @@ b2 = B2(
     key_id=key_id,
     secret_key=app_key
 )
-
 
 @st.cache_data 
 def fetch_data():
