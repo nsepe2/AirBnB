@@ -54,7 +54,7 @@ def get_sentiment_score(text, analyzer):
     if text:
         sentiment = analyzer.polarity_scores(text)
         return sentiment['compound']
-    return None  # Default sentiment score if text is missing
+    return 0  # Default sentiment score if text is missing
 
 
 # Load trained model and scaler from pickle file
