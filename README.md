@@ -20,12 +20,21 @@ The prediction leverages a trained linear regression model that uses features su
 
 __Tools Used:__
 **1. Streamlit:** For building an interactive web application with UI elements and navigation.
+
 **2. Pandas:** For data manipulation and analysis, including loading CSV data.
+
 **3. Pydeck:** For creating interactive map visualizations.
+
 **4. VADER Sentiment Analysis:** To analyze textual sentiments for review-related features.
+
 **5. Scikit-learn:** For machine learning, including Linear Regression modeling and feature scaling.
+
 **6. Pickle:** To load pre-trained models and scalers.
+
 **7. Backblaze B2 SDK:** For fetching data stored in a cloud bucket.
+
 **8. Dotenv:** For securely managing environment variables like API keys.
+
 **9. OS and Sys Modules:** For handling file paths and modifying the Python path.
+
 **10. Streamlit Cache:** For optimizing performance by caching fetched data.
