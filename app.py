@@ -188,6 +188,16 @@ def main():
         rating_input = st.number_input("Minimum Review Rating", min_value=0.0, max_value=5.0, value=3.0, step=0.1)
         price_input = st.number_input("Maximum Price ($)", min_value=0, value=500)
 
+        try:
+
+            if price_input == 0:
+                raise ValueError("Price cannot be 0. Please enter a valid price.")
+            if price_input > 12000:
+                st.error("Maximum Property Price is 12000.")
+                price_input = 12000  # Optionally, you can reset the price input to 12000, or leave it to the user to correct.
+                st.empty()
+        except ValueError as e:
+            st.error(e)
         unique_property_types = (
             ["Any"] + sorted(data['property_type'].dropna().unique().tolist()) 
             if 'property_type' in data.columns else ["Any"]
@@ -203,11 +213,12 @@ def main():
         search_button = st.button("Search")
 
         if search_button:
+            st.empty()
             filtered_data = data.copy()
 
             # Filter by rating
             if 'review_scores_rating' in filtered_data.columns:
-                filtered_data = filtered_data[filtered_data['review_scores_rating'] >= rating_input]
+                filtered_data = filtered_data[filtered_data['review_scores_rating'] == rating_input]
 
             # Filter by property type
             if selected_property_type != "Any" and 'property_type' in filtered_data.columns:
