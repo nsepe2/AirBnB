@@ -41,9 +41,14 @@ __Tools Used:__
 
 **10. Streamlit Cache:** For optimizing performance by caching fetched data.
 
+__Data Description:__
+Our app runs based on the dataset we got from InsideAirbnb: https://insideairbnb.com/get-the-data/
+We focused listing data only in Austin, TX.
+The dataset includes columns like neighborhood overview, latitude and longitude, property type, room type, price, rating scores, etc. For more detailed description on columns, please refer to the link provided and choose Austin, TX. 
+For app's buyer page, we used rating scores, price, property types, bedrooms, lat and long columns for users to explore listings.
+On the other hand, users looking to sell/rent properties in the area can use inputs like accommodates, neighborhood overview, price, amenities offered, etc. to get a predicted rating score for their property. 
 
-Algorithm Description
-
+__Algorithm Description__:
 
 1.)	Loading Data
   The data is first fetched via the fetch_data function, this retrieves the data from a Backblaze Bucket. Within app.py, the fetch_data function uses credentials (stored in streamlit secrets) to connect to backblaze via the B2 class in the utils folder. The file is retrieved from backblaze, and pandas are used to load it into a data frame. 
