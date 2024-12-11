@@ -64,4 +64,13 @@ __Algorithm Description__:
 4.)	Predicting Review Scores
   In the seller page, we will find the predictive functionality of our app. A potential AirBnB seller will input information about their potential listing into out app, these things include numeric features like accommodates, bathrooms, bedrooms, beds, and price. It will also include text descriptions of the neighborhood and amenities, there will also be a categorical entry for property type. Texts fields are passed through the SentimentIntensityAnalyzer again to produce new sentiment scores for the user’s inputs. These scores as well as all the other features are combined into a single data record and scaled before using it to predict. With the processed, scaled data the app calls the trained model’s predict method to calculate the estimated review score for the user. 
 
+**Ethical Concerns**
+
+Reinforcing Inequality
+If our model tends to predict higher scores for listings already likely to perform well, well-off neighborhoods, it might guide hosts towards conforming to certain market norms. This could discourage diversity in listings and possibly exaggerate existing negative sentiment towards certain neighborhoods and places. 
+
+Misuse of Insights
+Hosts could use our predicted scores to manipulate their descriptions into being more sentiment favorable but misleading to get a higher review rating on their listing. Given this model is accurate, larger companies can use these predictions to dominate certain areas, leading to higher prices and less diversity. 
+
+
 
