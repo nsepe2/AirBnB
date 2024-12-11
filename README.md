@@ -67,9 +67,11 @@ __Algorithm Description__:
 __Ethical Concerns__
 
 **Reinforcing Inequality**
+
 If our model tends to predict higher scores for listings already likely to perform well, well-off neighborhoods, it might guide hosts towards conforming to certain market norms. This could discourage diversity in listings and possibly exaggerate existing negative sentiment towards certain neighborhoods and places. 
 
 **Misuse of Insights**
+
 Hosts could use our predicted scores to manipulate their descriptions into being more sentiment favorable but misleading to get a higher review rating on their listing. Given this model is accurate, larger companies can use these predictions to dominate certain areas, leading to higher prices and less diversity. 
 
 
