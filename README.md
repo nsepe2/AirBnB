@@ -40,3 +40,20 @@ __Tools Used:__
 **9. OS and Sys Modules:** For handling file paths and modifying the Python path.
 
 **10. Streamlit Cache:** For optimizing performance by caching fetched data.
+
+Algorithm Description
+1.)	Loading Data
+  The data is first fetched via the fetch_data function, this retrieves the data from a Backblaze Bucket. Within app.py, the fetch_data function uses credentials (stored in streamlit secrets) to connect to backblaze via the B2 class in the utils folder. The file is retrieved from backblaze, and pandas are used to load it into a data frame. 
+
+2.)	Cleaning and Processing Data
+  In modeling_sentiment, the load_and_preprocess_data function removes rows with missing values. It also performs sentiment analysis on the text within the neighborhood_overview, host_neighborhood, and amenities columns, sentiment scores are then made into their own column. The other features (accommodates, bathrooms, bedrooms, beds, and price) are then prepped for modeling. The property type column is one-hot encoded so that the model can view property types as a binary indicator and not raw text. 
+
+3.)	Model Training and Loading
+  The train_and_save model function facilitates the model building process. This function will load the processed data and separate it into features (X) and the target (Y), which is review_scores_rating. This function will scale the features using standard scalar to ensure variables with different scales do not disproportionately affect the model. The model is then trained using a LinearRegression model on the scaled features to predict a user’s potential review_scores_rating. After the training, the model is then saved into model.pickle so that we can load a pre-trained and ready to use model into our app. 
+
+  The app.py file, upon running, will invoke load_model from modeling_sentiment.py. The load_model function will do two things, one, check whether model.pickle exists and, two, load the stored model, scalar, and expected feature list into memory. 
+
+4.)	Predicting Review Scores
+  In the seller page, we will find the predictive functionality of our app. A potential AirBnB seller will input information about their potential listing into out app, these things include numeric features like accommodates, bathrooms, bedrooms, beds, and price. It will also include text descriptions of the neighborhood and amenities, there will also be a categorical entry for property type. Texts fields are passed through the SentimentIntensityAnalyzer again to produce new sentiment scores for the user’s inputs. These scores as well as all the other features are combined into a single data record and scaled before using it to predict. With the processed, scaled data the app calls the trained model’s predict method to calculate the estimated review score for the user. 
+
+
