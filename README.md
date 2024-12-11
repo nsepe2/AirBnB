@@ -41,7 +41,10 @@ __Tools Used:__
 
 **10. Streamlit Cache:** For optimizing performance by caching fetched data.
 
+
 Algorithm Description
+
+
 1.)	Loading Data
   The data is first fetched via the fetch_data function, this retrieves the data from a Backblaze Bucket. Within app.py, the fetch_data function uses credentials (stored in streamlit secrets) to connect to backblaze via the B2 class in the utils folder. The file is retrieved from backblaze, and pandas are used to load it into a data frame. 
 
