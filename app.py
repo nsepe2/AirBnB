@@ -357,7 +357,9 @@ def main():
             predicted_score = model.predict(input_data_scaled)[0]
 
             st.subheader("Predicted Review Score")
-            st.write(f"The predicted review score for your listing is: {predicted_score:.2f}")
+            # st.write(f"The predicted review score for your listing is: {predicted_score:.2f}")
+            st.markdown(f"<h2 style='font-size: 36px; color: #FF5733; font-weight: bold;'>The predicted review score for your listing is: {predicted_score:.2f}</h2>", 
+    unsafe_allow_html=True)
             
              # Footer
     st.markdown("""
