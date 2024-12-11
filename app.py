@@ -11,6 +11,7 @@ import sys
 from utils.b2 import B2
 from dotenv import load_dotenv
 from io import BytesIO
+from utils.basic_clean import *
 
 # Set the page config for a wide layout
 st.set_page_config(page_title="Airbnb Data Viewer", layout="wide", initial_sidebar_state="expanded")
@@ -36,7 +37,7 @@ b2 = B2(
 def fetch_data():
     try:
         b2.set_bucket(os.getenv('B2_BUCKETNAME'))  
-        obj = b2.get_object('Cleaned_Austin_AirBnB.xlsx')  #Exact Name of File
+        obj = b2.get_object('Final_PROJ.xlsx')  #Exact Name of File
 
         # Convert the StreamingBody object to a BytesIO object
         # Done to combat Error
@@ -218,7 +219,7 @@ def main():
 
             # Filter by rating
             if 'review_scores_rating' in filtered_data.columns:
-                filtered_data = filtered_data[filtered_data['review_scores_rating'] == rating_input]
+                filtered_data = filtered_data[filtered_data['review_scores_rating'] >= rating_input]
 
             # Filter by property type
             if selected_property_type != "Any" and 'property_type' in filtered_data.columns:
@@ -272,15 +273,41 @@ def main():
         st.header("Seller Page")
 
         # User inputs for prediction
-        accommodates = st.number_input("Accommodates", min_value=1, step=1)
-        bathrooms = st.number_input("Bathrooms", min_value=0.5, step=0.5)
-        bedrooms = st.number_input("Bedrooms", min_value=1, step=1)
-        beds = st.number_input("Beds", min_value=1, step=1)
-        price = st.number_input("Price (USD)", min_value=10, step=1)
-        neighborhood_overview = st.text_area("Neighborhood Overview")
-        host_neighborhood = st.text_area("Host Neighborhood Description")
-        amenities = st.text_area("Amenities")
-        property_type = st.selectbox("Property Type", ["Apartment", "House", "Condo", "unknown"])
+        st.markdown("<h2 style='font-size: 18px;'>Accommodates</h2>", unsafe_allow_html=True)
+        accommodates = st.number_input("", min_value=1, step=1,max_value = 500, label_visibility="collapsed")
+        # accommodates = st.number_input("Accommodates", min_value=1, step=1, max_value = 500)
+
+        st.markdown("<h2 style='font-size: 18px;'>Bathrooms</h2>", unsafe_allow_html=True)
+        bathrooms = st.number_input("", min_value=0.5, step=0.5, max_value=100.0, label_visibility="collapsed")
+        # bathrooms = st.number_input("Bathrooms", min_value=0.5, step=0.5, max_value=100.0)
+
+        st.markdown("<h2 style='font-size: 18px;'>Bedrooms</h2>", unsafe_allow_html=True)
+        bedrooms = st.number_input("", min_value=1, step=1, max_value=100, label_visibility="collapsed")
+        # bedrooms = st.number_input("Bedrooms", min_value=1, step=1, max_value= 100)
+
+        st.markdown("<h2 style='font-size: 18px;'>Beds</h2>", unsafe_allow_html=True)
+        beds = st.number_input("", min_value=1, step=1, max_value = 500, label_visibility="collapsed",key="beds_input")
+        # beds = st.number_input("Beds", min_value=1, step=1, max_value = 500)
+
+        st.markdown("<h2 style='font-size: 18px;'>Price</h2>", unsafe_allow_html=True)
+        price = st.number_input("", min_value=10, step=1, label_visibility="collapsed")
+        # price = st.number_input("Price (USD)", min_value=10, step=1)
+
+        st.markdown("<h2 style='font-size: 18px;'>Host Neighborhood</h2>", unsafe_allow_html=True)
+        neighborhood_overview = st.text_area("", placeholder="Describe the host neighborhood...")
+        # neighborhood_overview = st.text_area("Neighborhood Overview")
+
+        st.markdown("<h2 style='font-size: 18px;'>Neighborhood Overview</h2>", unsafe_allow_html=True)
+        host_neighborhood = st.text_area("", placeholder="Provide neighborhood name..")
+        # host_neighborhood = st.text_area("Host Neighborhood")
+
+        st.markdown("<h2 style='font-size: 18px;'>Amenities</h2>", unsafe_allow_html=True)
+        amenities = st.text_area("", placeholder="Provide available amenities..")
+        # amenities = st.text_area("Amenities")
+
+        st.markdown("<h2 style='font-size: 18px;'>Property Type</h2>", unsafe_allow_html=True)
+        property_type = st.selectbox("", ["Apartment", "House", "Condo", "Unknown"])
+        # property_type = st.selectbox("Property Type", ["Apartment", "House", "Condo", "unknown"])
 
         # Sentiment Analysis
         analyzer = SentimentIntensityAnalyzer()
@@ -338,7 +365,6 @@ def main():
             <p>Made by Nathan, Parth, Diya & Arsh | 2024</p>
         </div>
     """, unsafe_allow_html=True)
-
 
 if __name__ == "__main__":
     main()
