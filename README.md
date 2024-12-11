@@ -42,10 +42,10 @@ __Tools Used:__
 **10. Streamlit Cache:** For optimizing performance by caching fetched data.
 
 __Data Description:__
-Our app runs based on the dataset we got from InsideAirbnb: https://insideairbnb.com/get-the-data/
-We focused listing data only in Austin, TX.
-The dataset includes columns like neighborhood overview, latitude and longitude, property type, room type, price, rating scores, etc. For more detailed description on columns, please refer to the link provided and choose Austin, TX. 
-For app's buyer page, we used rating scores, price, property types, bedrooms, lat and long columns for users to explore listings.
+Our app runs based on the dataset we got from InsideAirbnb: https://insideairbnb.com/get-the-data <br>
+We focused listing data only in Austin, TX. <br>
+The dataset includes columns like neighborhood overview, latitude and longitude, property type, room type, price, rating scores, etc. For more detailed description on columns, please refer to the link provided and choose Austin, TX. <br>
+For app's buyer page, we used rating scores, price, property types, bedrooms, lat and long columns for users to explore listings. <br>
 On the other hand, users looking to sell/rent properties in the area can use inputs like accommodates, neighborhood overview, price, amenities offered, etc. to get a predicted rating score for their property. 
 
 __Algorithm Description__:
