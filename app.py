@@ -294,15 +294,15 @@ def main():
         # price = st.number_input("Price (USD)", min_value=10, step=1)
 
         st.markdown("<h2 style='font-size: 18px;'>Host Neighborhood</h2>", unsafe_allow_html=True)
-        neighborhood_overview = st.text_area("", placeholder="Describe the host neighborhood...")
+        neighborhood_overview = st.text_area("", placeholder="Provide neighborhood name...")
         # neighborhood_overview = st.text_area("Neighborhood Overview")
 
         st.markdown("<h2 style='font-size: 18px;'>Neighborhood Overview</h2>", unsafe_allow_html=True)
-        host_neighborhood = st.text_area("", placeholder="Provide neighborhood name..")
+        host_neighborhood = st.text_area("", placeholder="Provide neighborhood description...")
         # host_neighborhood = st.text_area("Host Neighborhood")
 
         st.markdown("<h2 style='font-size: 18px;'>Amenities</h2>", unsafe_allow_html=True)
-        amenities = st.text_area("", placeholder="Provide available amenities..")
+        amenities = st.text_area("", placeholder="Provide available amenities...")
         # amenities = st.text_area("Amenities")
 
         st.markdown("<h2 style='font-size: 18px;'>Property Type</h2>", unsafe_allow_html=True)
@@ -344,7 +344,7 @@ def main():
         # Reorder columns to match the expected features
         input_data_encoded = input_data_encoded[expected_features]
 
-        # Add button to submit input data
+         # Add button to submit input data
         if st.button("Predict Review Score"):
             # Standardize features
             try:
@@ -356,10 +356,13 @@ def main():
             # Make prediction
             predicted_score = model.predict(input_data_scaled)[0]
 
+            # Check if predicted score is greater than 5
+        if predicted_score > 5:
+            st.error("Uh-Oh, it seems that the combination of your inputs is very unique and our model is having trouble taking into account this unique combo. Try something else!")
+        else:
             st.subheader("Predicted Review Score")
-            # st.write(f"The predicted review score for your listing is: {predicted_score:.2f}")
             st.markdown(f"<h2 style='font-size: 36px; color: #FF5733; font-weight: bold;'>The predicted review score for your listing is: {predicted_score:.2f}</h2>", 
-    unsafe_allow_html=True)
+                    unsafe_allow_html=True)
             
              # Footer
     st.markdown("""
